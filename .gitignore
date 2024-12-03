@@ -1,0 +1,5 @@
+venv/
+.antlr/
+ПНГ/
+uefi1/
+__pycache__/
