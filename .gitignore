@@ -3,3 +3,4 @@ venv/
 ПНГ/
 uefi1/
 __pycache__/
+test.py

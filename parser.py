@@ -12,36 +12,77 @@ class LinearSegmentFinder:
     def __init__(self): 
         self.linear_segments = []  # Список для хранения линейных участков
         self.current_segment = []   # Текущий линейный участок
-        self.statements = []        # Список для хранения операторов
+        self.statements = []        # Список для хранения узлов
         self.adjacency_matrix = []  # Матрица смежности
         self.variable_declarations = {}  # Словарь для хранения объявленных переменных
+        self.header_segments = []    # Список для хранения заголовков
+        self.statm = set() # Список для хранения операторов
 
     def print_slices(self):
-        print("Слайды класса LinearSegmentFinder:")
-        print("-" * 40)
-        print("1. linear_segments: ", self.linear_segments)
-        print("   (Список для хранения линейных участков)")
-        print("2. current_segment: ", self.current_segment)
-        print("   (Текущий линейный участок)")
-        print("3. statements: ", self.statements)
-        print("   (Список для хранения операторов)")
-        print("4. adjacency_matrix: ", self.adjacency_matrix)
-        print("   (Матрица смежности)")
-        print("5. variable_declarations: ", self.variable_declarations)
-        print("   (Словарь для хранения объявленных переменных)")
-        print("-" * 40)
+        # print("Слайды класса LinearSegmentFinder:")
+        # print("-" * 40)
+        # print("1. linear_segments: ", self.linear_segments)
+        # print("   (Список для хранения линейных участков)")
+        print("3. statements: ", self.statm)
+        # print("   (Список для хранения операторов)")
+        # print("5. variable_declarations: ", self.variable_declarations)
+        # print("   (Словарь для хранения объявленных переменных)")
+        # print("-" * 40)
     
     def add_statement(self, statement, line, char_position):
-        # Добавляем оператор в список операторов
-        self.statements.append(statement)  
-        print(f"Добавлено в список операторов: {statement} (строка: {line}, позиция: {char_position})")  # Вывод в консоль
+        # Разбиваем оператор на отдельные части
+        # statements = self.split_statements(statement)
+        # for stmt in statements:
+            # Добавляем узел в список узлов
+            self.statements.append(statement)  
+            # print(f"Добавлено в список узлов: {statement} (строка: {line}, позиция: {char_position})")  # Вывод в консоль
 
-        # Добавляем оператор в текущий линейный участок
-        self.current_segment.append((statement, line, char_position))
+            # Добавляем узел в текущий линейный участок
+            self.current_segment.append((statement, line, char_position))
+    
+    def add_stat(self, statem, line, char_position):
+        statm = self.split_statements(statem)
+        for stmt in statm:
+            # Фильтруем ключевые слова
+            if stmt not in {'NULL', '0'}:  # Добавьте другие ключевые слова, если необходимо
+                self.statm.add(stmt)  # Используем множество для уникальности
+                # print(f"Добавлено в список операторов: {stmt} (строка: {line}, позиция: {char_position})")
+    
+    def split_statements(self, statement):
+        unique_parts = set()  # Используем множество для уникальности
+        pattern = r'(\w+|\w+\s*->\s*\w+|\w+\s*\(.*?\))'
+        statem = re.sub(r'u?\'[^\']*\'|u?"[^"]*"', '', statement)
+        
+        # Игнорируем строки с директивами #include
+        if '#include' in statem:
+            return []  # Возвращаем пустой список, если есть директива #include
+        
+        matches = re.findall(pattern, statem)
+        
+        for match in matches:
+            cleaned_match = re.sub(r'[()]', '', match).strip()
+            
+            # Удаляем 'key' из 'EFI_INPUT_KEYkey'
+            if cleaned_match.startswith('EFI_INPUT_KEY'):
+                cleaned_match = cleaned_match.replace('key', '', 1)  # Удаляем только первое вхождение 'key'
+            
+            # Фильтруем ключевые слова
+            if cleaned_match not in {'NULL', '0'}:  # Добавьте другие ключевые слова, если необходимо
+                unique_parts.add(cleaned_match)
+        
+        return list(unique_parts)  # Преобразуем множество обратно в список
 
     def finalize_segment(self):
         if self.current_segment:
-            print(f"Завершен линейный участок: {self.current_segment}")  # Вывод в консоль
+            if self.header_segments:  # Если это заголовок
+                # print("Завершен линейный участок заголовка:")
+                for idx, (stmt, line, char_pos) in enumerate(self.header_segments):
+                    print(f"{idx + 1} узел: {stmt} (строка: {line}, позиция: {char_pos})")
+                self.header_segments = []  # Сброс заголовков
+            # else:  # Если это линейный участок функции
+                # print("Завершен линейный участок функции:")
+                # for idx, (stmt, line, char_pos) in enumerate(self.current_segment):
+                #     print(f"{idx + 1}: {stmt} (строка: {line}, позиция: {char_pos})")
             self.linear_segments.append(self.current_segment)
             self.current_segment = []
             
@@ -53,20 +94,21 @@ class LinearSegmentFinder:
             var_name = self.extract_variable_name(declaration)
             if var_name:
                 self.variable_declarations[var_name] = line  # Сохраняем имя переменной и строку
-                print(f"Объявлена переменная: {var_name} (строка: {line})")  # Вывод в консоль
+                # print(f"Объявлена переменная: {var_name} (строка: {line})")  # Вывод в консоль
         elif isinstance(tree, UEFIParser.StatementContext):
             line = tree.start.line
             char_position = tree.start.start
             self.add_statement(tree.getText(), line, char_position)
+            self.add_stat(tree.getText(), line, char_position)
         elif isinstance(tree, UEFIParser.WhileStatementContext):
             self.finalize_segment()  # Завершаем текущий линейный участок
-            print(f"Обработка цикла while: {tree.getText()} (строка: {tree.start.line}, позиция: {tree.start.start})")  # Вывод в консоль
+            # print(f"Обработка цикла while: {tree.getText()} (строка: {tree.start.line}, позиция: {tree.start.start})")  # Вывод в консоль
             for stmt in tree.block().statement():
                 self.visit(stmt)
             self.finalize_segment()  # Завершаем линейный участок цикла
         elif isinstance(tree, UEFIParser.FunctionDeclarationContext):
             self.finalize_segment()  # Завершаем текущий линейный участок
-            print(f"Обработка функции: {tree.getText()} (строка: {tree.start.line}, позиция: {tree.start.start})")  # Вывод в консоль
+            # print(f"Обработка функции: {tree.getText()} (строка: {tree.start.line}, позиция: {tree.start.start})")  # Вывод в консоль
             for stmt in tree.block().statement():
                 self.visit(stmt)
             self.finalize_segment()  # Завершаем линейный участок функции
@@ -263,25 +305,27 @@ def main():
     finder = LinearSegmentFinder()
     finder.visit(tree)
 
-    # Выводим все линейные участки
-    # print("\nВсе найденные линейные участки:")
-    # for i, segment in enumerate(finder.linear_segments):
-    #     print(f"Линейный участок {i + 1}:")
-    #     for line, line_num, char_pos in segment:
-    #         print(f"  {line} (строка: {line_num}, позиция: {char_pos})")
+    print("\nВсе найденные линейные участки:")
+    for i, segment in enumerate(finder.linear_segments, start=1):
+        print(f"Линейный участок {i}:")
+        node_counter = 1
+        for line, line_num, char_pos in segment:
+            print(f"{node_counter}.Узел:  {line} (строка: {line_num}, позиция: {char_pos})")
+            node_counter += 1
+    
+            
     # Пример вызова метода для построения матрицы смежности
     finder.build_adjacency_matrix()
     finder.print_slices()
-    print("Матрица смежности:")
-    for row in finder.adjacency_matrix:
-        print(row)      
+    # print("Матрица смежности:")
+    # for row in finder.adjacency_matrix:
     # plot_adjacency_matrix(finder.adjacency_matrix)
     
     path_matrix = build_path_matrix(finder.adjacency_matrix)
     # plot_adjacency_matrix(path_matrix)
-    print("Матрица путей:")
-    for row in path_matrix:
-        print(row)
+    # print("Матрица путей:")
+    # for row in path_matrix:
+    #     print(row)
     plot_matrices(finder.adjacency_matrix, path_matrix, finder.statements)
     
     
