@@ -14,7 +14,7 @@ class LinearSegmentFinder:
         self.current_segment = []   # Текущий линейный участок
         self.statements = []        # Список для хранения узлов
         self.adjacency_matrix = []  # Матрица смежности
-        self.variable_declarations = {}  # Словарь для хранения объявленных переменных
+        self.variable_declarations = {'key': 1}  # Словарь для хранения объявленных переменных
         self.header_segments = []    # Список для хранения заголовков
         self.statm = set() # Список для хранения операторов
 
@@ -121,46 +121,41 @@ class LinearSegmentFinder:
         # Например, для "EFI_INPUT_KEY key;" нужно получить "key"
         match = re.search(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s*;', declaration)
         return match.group(1) if match else None
+    
+    def find_dependencies(self):
+        dependencies = {}
+        for statement in self.statements:
+            parts = statement.split('->')
+            for part in parts:
+                part = part.strip()
+                if part in self.statm:
+                    if part not in dependencies:
+                        dependencies[part] = []
+                    dependencies[part].append(statement)
+        print(dependencies)
+        return dependencies
             
     def build_adjacency_matrix(self):
-        n = len(self.statements)
-        self.adjacency_matrix = [[0] * n for _ in range(n)]  # Инициализация матрицы нулями
+        dependencies = self.find_dependencies()
+        operators = list(self.statm)
+        size = len(operators)
+        
+        # Инициализация матрицы смежности
+        self.adjacency_matrix = [[0] * size for _ in range(size)]
+        
+        # Заполнение матрицы смежности на основе зависимостей
+        for i, operator in enumerate(operators):
+            if operator in dependencies:
+                for dependent_statement in dependencies[operator]:
+                    for j, dep_operator in enumerate(operators):
+                        if dep_operator in dependent_statement:
+                            self.adjacency_matrix[i][j] = 1  # Устанавливаем связь
 
-        # Пример: добавление зависимостей
-        for i in range(n):
-            for j in range(i + 1, n):
-                # 1. Определяем зависимости от переменных
-                for var in self.variable_declarations.keys():
-                    if var in self.statements[j] and self.variable_declarations[var] < i:
-                        self.adjacency_matrix[i][j] = 1  # Устанавливаем зависимость
-
-                # 2. Определяем зависимости от функций
-                if "SystemTable" in self.statements[i] and "SystemTable" in self.statements[j]:
-                    self.adjacency_matrix[i][j] = 1  # Устанавливаем зависимость
-
-                # 3. Определяем зависимости от структур
-                if "->" in self.statements[i]:  # Проверяем, есть ли доступ к полям структуры
-                    struct_access = self.statements[i].split("->")[0].strip()  # Получаем имя структуры
-                    if struct_access in self.statements[j]:  # Проверяем, используется ли структура в j
-                        self.adjacency_matrix[i][j] = 1  # Устанавливаем зависимость
-
-                # 4. Условные зависимости
-                if "while" in self.statements[i] or "if" in self.statements[i]:
-                    for k in range(i + 1, n):
-                        self.adjacency_matrix[i][k] = 1  # Устанавливаем зависимость от while или if
-
-                if "while" in self.statements[j] or "if" in self.statements[j]:
-                    condition_index = i
-                    condition_found = False
-                    for k in range(i, -1, -1):
-                        if "while" in self.statements[k] or "if" in self.statements[k]:
-                            condition_index = k
-                            condition_found = True
-                            break
-                    if condition_found:
-                        self.adjacency_matrix[condition_index][j] = 1  # Устанавливаем зависимость от while или if
-
-                
+        # Вывод матрицы смежности для проверки
+        print("Матрица смежности:")
+        for row in self.adjacency_matrix:
+            print(row)
+                    
 def build_graph(tree, graph=None, parent=None, seen=None):
     """ Рекурсивно строит граф из дерева разбора, избегая дублирования узлов """
     if graph is None:
@@ -230,9 +225,8 @@ def plot_matrices(adjacency_matrix, path_matrix, statements):
     adjacency_matrix = np.array(adjacency_matrix)
     path_matrix = np.array(path_matrix)
 
-    # Извлекаем части из строк для меток
-    # Например, используем первые 3 слова из каждой строки
-    short_labels = [' '.join(statement.split()[:3]) for statement in statements]
+    # Извлекаем уникальные операторы для меток
+    operators = list(statements)  # Используем переданные операторы как метки
 
     fig, axs = plt.subplots(1, 2, figsize=(10, 10))
 
@@ -241,8 +235,8 @@ def plot_matrices(adjacency_matrix, path_matrix, statements):
     axs[0].set_title('Матрица смежности')
     axs[0].set_xticks(ticks=np.arange(len(adjacency_matrix)))
     axs[0].set_yticks(ticks=np.arange(len(adjacency_matrix)))
-    # axs[0].set_xticklabels(short_labels, rotation=45, ha='right')  # Используем сокращенные метки
-    # axs[0].set_yticklabels(short_labels)
+    axs[0].set_xticklabels(operators, rotation=45, ha='right')  # Используем названия операторов
+    axs[0].set_yticklabels(operators)
 
     # Добавляем текстовые метки (0 и 1) в матрицу смежности
     for i in range(adjacency_matrix.shape[0]):
@@ -254,8 +248,8 @@ def plot_matrices(adjacency_matrix, path_matrix, statements):
     axs[1].set_title('Матрица путей')
     axs[1].set_xticks(ticks=np.arange(len(path_matrix)))
     axs[1].set_yticks(ticks=np.arange(len(path_matrix)))
-    # axs[1].set_xticklabels(short_labels, rotation=45, ha='right')  # Используем сокращенные метки
-    # axs[1].set_yticklabels(short_labels)
+    axs[1].set_xticklabels(operators, rotation=45, ha='right')  # Используем названия операторов
+    axs[1].set_yticklabels(operators)
 
     # Добавляем текстовые метки (0 и 1) в матрицу путей
     for i in range(path_matrix.shape[0]):
@@ -326,7 +320,7 @@ def main():
     # print("Матрица путей:")
     # for row in path_matrix:
     #     print(row)
-    plot_matrices(finder.adjacency_matrix, path_matrix, finder.statements)
+    plot_matrices(finder.adjacency_matrix, path_matrix, finder.statm)
     
     
 if __name__ == '__main__':
