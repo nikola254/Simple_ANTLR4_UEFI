@@ -4,3 +4,4 @@ venv/
 uefi1/
 __pycache__/
 test.py
+.vscode/

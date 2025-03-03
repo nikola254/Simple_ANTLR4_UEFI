@@ -76,8 +76,8 @@ class LinearSegmentFinder:
         if self.current_segment:
             if self.header_segments:  # Если это заголовок
                 # print("Завершен линейный участок заголовка:")
-                for idx, (stmt, line, char_pos) in enumerate(self.header_segments):
-                    print(f"{idx + 1} узел: {stmt} (строка: {line}, позиция: {char_pos})")
+                # for idx, (stmt, line, char_pos) in enumerate(self.header_segments):
+                #     print(f"{idx + 1} узел: {stmt} (строка: {line}, позиция: {char_pos})")
                 self.header_segments = []  # Сброс заголовков
             # else:  # Если это линейный участок функции
                 # print("Завершен линейный участок функции:")
@@ -132,7 +132,7 @@ class LinearSegmentFinder:
                     if part not in dependencies:
                         dependencies[part] = []
                     dependencies[part].append(statement)
-        print(dependencies)
+        # print(dependencies)
         return dependencies
             
     def build_adjacency_matrix(self):
