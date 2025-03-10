@@ -8,10 +8,10 @@ compilationUnit
 // Определение возможных операторов
 statement
     : includeStatement
-    | variableDeclaration
-    | expressionStatement
-    | comment
-    | whileStatement
+    | variableDeclaration #var
+    | expressionStatement #exp
+    | comment #comm
+    | whileStatement #while
     ;
 
 // Определение директивы включения
