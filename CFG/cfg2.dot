@@ -1,0 +1,40 @@
+digraph InstrumentedCFG {
+    rankdir=TB;
+    graph [bgcolor=white];
+    node  [shape=box, style=filled, fontname="Arial", fillcolor="#CCE5FF", color="#336699"];
+    edge  [color="#336699", fontname="Arial"];
+
+    // Основные этапы (узлы)
+    entry          [label="TRACE_ENTER(efi_main)"];
+    setAttr        [label="TRACE_ENTER(SetAttribute_YELLOW_GREEN)\nSetAttribute\nTRACE_EXIT(SetAttribute_YELLOW_GREEN)"];
+    clearScreen    [label="TRACE_ENTER(ClearScreen)\nClearScreen\nTRACE_EXIT(ClearScreen)"];
+    outputHello    [label="TRACE_ENTER(OutputString_Hello)\nOutputString (Hello, World!)\nTRACE_EXIT(OutputString_Hello)"];
+    setAttr2       [label="TRACE_ENTER(SetAttribute_RED_BLACK)\nSetAttribute\nTRACE_EXIT(SetAttribute_RED_BLACK)"];
+    outputPress    [label="TRACE_ENTER(OutputString_PressKey)\nOutputString (Press any key...)\nTRACE_EXIT(OutputString_PressKey)"];
+    waitKey        [label="TRACE_ENTER(WaitForKey)\n(wait for key)\nTRACE_EXIT(WaitForKey)"];
+    branch         [label="TRACE_ENTER(ConditionalBranch)\nif(key==0xFF)"];
+    hookCall       [label="TRACE_ENTER(bootkit_hook_call)\nbootkit_hook\nTRACE_EXIT(bootkit_hook_call)"];
+    resetCall      [label="TRACE_ENTER(ResetSystem_call)\nResetSystem\nTRACE_EXIT(ResetSystem_call)"];
+    branchExit     [label="TRACE_EXIT(ConditionalBranch)"];
+    exit           [label="TRACE_EXIT(efi_main)"];
+    ret            [label="return EFI_SUCCESS"];
+
+    // Рёбра (переходы)
+    entry       -> setAttr;
+    setAttr     -> clearScreen;
+    clearScreen -> outputHello;
+    outputHello -> setAttr2;
+    setAttr2    -> outputPress;
+    outputPress -> waitKey;
+    waitKey     -> branch;
+    
+    // Разветвление условие
+    branch -> hookCall [label="true"];
+    branch -> resetCall [label="false"];
+
+    // Слияние веток
+    hookCall    -> branchExit;
+    resetCall   -> branchExit;
+    branchExit  -> exit;
+    exit        -> ret;
+}

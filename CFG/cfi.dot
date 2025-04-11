@@ -1,0 +1,35 @@
+digraph CFI_DetourExample {
+    rankdir=TB;
+    graph [bgcolor=white];
+    node  [shape=box, style=rounded, fontname="Arial", fillcolor="#F0E68C", color="#B8860B"];
+    edge  [color="#B8860B", fontname="Arial"];
+
+    // Узлы, отражающие нормальный поток выполнения
+    main          [label="main()"];
+    init          [label="init()"];
+    loadConfig    [label="loadConfig()"];
+    criticalOp    [label="criticalOperation()"];
+    performOp     [label="performOperation()"];
+
+    // Узлы, отражающие вмешательство (CFI нарушение)
+    detour        [label="maliciousHook()\n(CFI Detour)"];
+    resumeOp      [label="resumeOperation()"];
+
+    // Завершающий этап
+    finalProcess  [label="finalProcess()"];
+    exit          [label="exit()"];
+
+    // Нормальный поток
+    main       -> init;
+    init       -> loadConfig;
+    loadConfig -> criticalOp;
+    criticalOp -> performOp [label="normal call"];
+
+    // Вмешательство: в точке performOperation() происходит CFI-дирекция
+    performOp  -> detour    [label="CFI Detour"];
+    detour     -> resumeOp  [label="return from hook"];
+
+    // Продолжение основного потока
+    resumeOp   -> finalProcess;
+    finalProcess -> exit;
+}

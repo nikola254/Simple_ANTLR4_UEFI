@@ -1,0 +1,59 @@
+digraph UEFI_Complex {
+    rankdir=TB;
+    graph [bgcolor=white, fontsize=10];
+    node [shape=box, style=rounded, fontname="Arial", fillcolor="#CCE5FF", color="#336699"];
+    edge [color="#336699", fontname="Arial"];
+
+    // Узлы
+    entry             [label="Start UEFI Application"];
+    initBootServices  [label="Initialize Boot Services"];
+    loadDrivers       [label="Load Drivers"];
+    loadModules       [label="Load Boot Modules"];
+    runDiagnostics    [label="Run Diagnostics"];
+    checkSecurity     [label="Security Check"];
+    userSelection     [label="User Selection"];
+    advancedOptions   [label="Advanced Options"];
+    updateFirmware    [label="Update Firmware"];
+    recoveryMode      [label="Enter Recovery Mode"];
+    fallback          [label="Fallback Boot Option"];
+    resetSystem       [label="Reset System"];
+    launchOS          [label="Launch Operating System"];
+    exit              [label="Exit UEFI Application"];
+
+    // Основной поток загрузки
+    entry             -> initBootServices;
+    initBootServices  -> loadDrivers;
+    loadDrivers       -> loadModules;
+    loadModules       -> runDiagnostics;
+    runDiagnostics    -> checkSecurity;
+    
+    // Ветвление после проверки безопасности
+    checkSecurity     -> userSelection [label="Security OK"];
+    checkSecurity     -> recoveryMode  [label="Security Fail"];
+
+    // Ветка выбора пользователем
+    userSelection     -> launchOS      [label="Boot OS"];
+    userSelection     -> advancedOptions [label="Advanced Settings"];
+
+    // Продвинутые настройки
+    advancedOptions   -> updateFirmware [label="Firmware Update"];
+    advancedOptions   -> fallback       [label="Fallback Option"];
+    
+    // После обновления – переход к загрузке ОС
+    updateFirmware    -> launchOS      [label="After Update"];
+
+    // Альтернативные сценарии
+    fallback          -> resetSystem   [label="Reset Boot"];
+    recoveryMode      -> fallback      [label="Recovery to Fallback"];
+    recoveryMode      -> resetSystem   [label="Recovery to Reset"];
+
+    // Завершение
+    resetSystem       -> exit;
+    launchOS          -> exit;
+
+    // Дополнительные перекрёстные дуги для демонстрации альтернативных путей:
+    loadDrivers       -> runDiagnostics [style=dashed, label="Pre-check"];
+    advancedOptions   -> checkSecurity  [style=dotted, label="Re-check Security"];
+    initBootServices  -> recoveryMode   [color=red, label="Boot Service Failure"];
+    updateFirmware    -> recoveryMode   [style=bold, color=purple, label="Firmware Error"];
+}

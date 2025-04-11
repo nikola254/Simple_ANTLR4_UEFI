@@ -90,3 +90,8 @@ git commit -m "first commit"
 git branch -M master
 git remote add origin https://github.com/nikola254/Simple_ANTLR4_UEFI.git
 git push -u origin master
+
+
+
+java -jar D:\Programs\Antlr\antlr-4.13.2-complete.jar -Dlanguage=Python3 efi_instrum.g4
+python parse.py input.txt

@@ -1,0 +1,28 @@
+digraph UEFI_Module_Loading {
+    rankdir=TB;
+    graph [bgcolor=white];
+    node [shape=box, style=rounded, fontname="Arial", fillcolor="#CCE5FF", color="#336699"];
+    edge [color="#336699", fontname="Arial"];
+
+    // Определяем узлы
+    entry         [label="Start Module Loading"];
+    initServices  [label="Initialize Boot Services"];
+    loadDrivers   [label="Load UEFI Drivers"];
+    loadModules   [label="Load Boot Modules"];
+    validate      [label="Validate Modules"];
+    decision      [label="Modules OK?"];
+    recovery      [label="Enter Recovery Mode"];
+    launchOS      [label="Launch OS Boot"];
+    exit          [label="End Module Loading"];
+
+    // Определяем рёбра (переходы)
+    entry        -> initServices;
+    initServices -> loadDrivers;
+    loadDrivers  -> loadModules;
+    loadModules  -> validate;
+    validate     -> decision;
+    decision     -> launchOS [label="Yes"];
+    decision     -> recovery [label="No"];
+    recovery     -> launchOS;  // Допустим, даже при сбое пытаемся загрузить ОС в режиме восстановления
+    launchOS     -> exit;
+}

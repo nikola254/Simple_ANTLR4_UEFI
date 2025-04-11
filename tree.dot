@@ -1,0 +1,42 @@
+digraph ParseTree {
+    rankdir=TB;
+    node [shape=box, fontname="Arial"];
+
+    // Корневой узел
+    node0 [label="start"];
+
+    // Узел main
+    node1 [label="main"];
+    node0 -> node1;
+
+    // Узлы для main: ENTER_main, efi_main, EXIT_main
+    node2 [label="ENTER_main"];
+    node3 [label="efi_main"];
+    node4 [label="EXIT_main"];
+    node1 -> node2;
+    node1 -> node3;
+    node1 -> node4;
+
+    // Внутри efi_main:
+    // efi_main : TRACE_ENTER2 waitForKey TRACE_EXIT2 TRACE_ENTER3 conditionalBranch TRACE_EXIT3 ( TRACE_ENTER4 bootkit_hook_call TRACE_EXIT4 | ... )
+    // Здесь выбираем альтернативу с hook.
+    node5  [label="ENTER_key"];            // TRACE_ENTER2
+    node6  [label="waitForKey"];             // правило waitForKey (пустое)
+    node7  [label="EXIT_key"];              // TRACE_EXIT2
+    node8  [label="ENTER_conditional"];     // TRACE_ENTER3
+    node9  [label="conditionalBranch"];     // правило conditionalBranch (пустое)
+    node10 [label="ENTER_hook"];            // Альтернатива: TRACE_ENTER4
+    node11 [label="bootkit_hook_call"];       // правило bootkit_hook_call (пустое)
+    node12 [label="EXIT_hook"];             // TRACE_EXIT4
+    node13 [label="EXIT_conditional"];      // TRACE_EXIT3
+
+    node3 -> node5;
+    node3 -> node6;
+    node3 -> node7;
+    node3 -> node8;
+    node3 -> node9;
+    node3 -> node10;
+    node3 -> node11;
+    node3 -> node12;
+    node3 -> node13;
+}

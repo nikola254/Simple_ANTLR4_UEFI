@@ -1,0 +1,29 @@
+digraph UEFI_BlackLotus {
+    rankdir=TB;
+    graph [bgcolor=white];
+    node  [shape=box, style=rounded, fontname="Arial", fillcolor="#FFE4E1", color="#B22222"];
+    edge  [color="#B22222", fontname="Arial"];
+
+    // Основной легитимный поток
+    entry         [label="UEFI Boot Manager"];
+    loadModules   [label="Load Legitimate Modules"];
+    initDrivers   [label="Initialize Drivers"];
+    
+    // Вмешательство Bootkit Black Lotus
+    blackLotus    [label="Bootkit Black Lotus\n(Hijack Control)"];
+    
+    // Продолжение потока
+    continueFlow  [label="Continue Boot Process"];
+    launchOS      [label="Launch Operating System"];
+
+    // Нормальный поток
+    entry        -> loadModules [label="Step 1"];
+    loadModules  -> initDrivers [label="Step 2"];
+    
+    // Перехват потока
+    initDrivers  -> blackLotus  [label="Hijack Return Address"];
+
+    // После вмешательства управление возвращается
+    blackLotus   -> continueFlow [label="Return to Boot"];
+    continueFlow -> launchOS      [label="Final Step"];
+}
